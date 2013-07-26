@@ -26,7 +26,7 @@ __version__ = 0.1
 __date__ = '2013-07-25'
 __updated__ = '2013-07-25'
 
-PROFILE = 1
+PROFILE = 0
 
 def main(argv=None):
     '''Command line options.'''
@@ -141,20 +141,7 @@ def main(argv=None):
                          )}
          
         transcript = {'name':'minplus', 'start': 1, 'stop': 957}
-        # + + case
-        """
-            Plus Plus works exactly as expected. No reverse transcription required. ATG appears immediately
-            at final[522:3012], and the sequence in the transdecoder.cds match the subsequence.
-        """
-        gene = {'start': 74641, 'stop': 78761, 'name':'plusplus', 
-                'exons': ({ 'start': 74641, 'stop': 76014 } , 
-                          { 'start': 76111, 'stop': 76277 } , 
-                          { 'start': 76368, 'stop': 76465 } ,
-                          { 'start': 76558, 'stop': 76914 } ,
-                          { 'start': 77029, 'stop': 77445 } ,
-                          { 'start': 77628, 'stop': 78761 }
-                         )}
-        transcript = {'name':'plusplus', 'start': 523, 'stop':3012}
+
         
         """
         case that failed during run
@@ -255,7 +242,12 @@ def convert_trans_to_genome(original_gff, best_cands):
                     try:
                         # get the name
                         cur_gene = last_trans[8].split("=")[1].split(";")[0]
+                        print cur_gene
                         for trans in bc_lookup[cur_gene]:
+                            if trans[0][6] == "-":
+                                swap = True
+                            else:
+                                swap = False
                             transcript = {'name':cur_gene, 'start': int(trans[0][3]), 'stop': int(trans[0][4])}
                             genome_exon_list = []
                             for f in exon_list: 
@@ -270,21 +262,34 @@ def convert_trans_to_genome(original_gff, best_cands):
                                 if len(cds) == 0:
                                     raise Exception("CDS empty")
                                 for exon in exon_list:
+                                    if swap:
+                                        if "+" in exon[1]:
+                                            print exon[1].replace("+", "-").strip()
+                                        else:
+                                            print exon[1].replace("-", "+").strip()
+                                    else:
                                         print exon[1].strip()
-                                        for seq in cds:
-                                            #if it is a part of or equal to this exon write it                                        
-                                            if seq['start'] >= int(exon[0][3]) and seq['stop'] <= int(exon[0][4]):
-                                                #change exon to CDS, put the CDS start at the start position and CDS end at end position.
-                                                fin = exon[1].replace('exon', 'CDS').replace(exon[0][3],str(seq['start'])).replace(exon[0][4],str(seq['stop']))
+                                    for seq in cds:
+                                        #if it is a part of or equal to this exon write it                                        
+                                        if seq['start'] >= int(exon[0][3]) and seq['stop'] <= int(exon[0][4]):
+                                            #change exon to CDS, put the CDS start at the start position and CDS end at end position.
+                                            fin = exon[1].replace('exon', 'CDS').replace(exon[0][3],str(seq['start'])).replace(exon[0][4],str(seq['stop']))
+                                            if swap:
+                                                if "+" in fin:
+                                                    print fin.replace("+", "-").strip()
+                                                else:
+                                                    print fin.replace("-", "+").strip()
+                                            else:
                                                 print fin.strip()
-                                                break 
+                                            break 
                                 
                             except Exception as e:
                                 print >> sys.stderr, e
                                 print >> sys.stderr, "Error in Gene:"
                                 print >> sys.stderr, "Exons", exons
                                 print >> sys.stderr, "trans", transcript
-                    except KeyError:
+                    except KeyError as e:
+                        print >> sys.stderr, e
                         continue
                 last_trans = linearr
                 trans_coor = (int(linearr[3]), int(linearr[4]))
@@ -338,10 +343,31 @@ def build_coordinates(gene, transcript):
 
 
 
-class TransdecoderToGenomeTest(unittest.TestCase):
-    """
-    """
-    def testSettingsJsonFields(self):
+class BuildCoordinatesTest(unittest.TestCase):
+
+    def testCorrectPlusPlus(self):
+        """
+            Plus Plus works exactly as expected. No reverse transcription required. ATG appears immediately
+            at final[522:3012], and the sequence in the transdecoder.cds match the subsequence.
+        """
+        gene = {'start': 74641, 'stop': 78761, 'name':'plusplus', 
+                'exons': ({ 'start': 74641, 'stop': 76014 } , 
+                          { 'start': 76111, 'stop': 76277 } , 
+                          { 'start': 76368, 'stop': 76465 } ,
+                          { 'start': 76558, 'stop': 76914 } ,
+                          { 'start': 77029, 'stop': 77445 } ,
+                          { 'start': 77628, 'stop': 78761 }
+                         )}
+        transcript = {'name':'plusplus', 'start': 523, 'stop':3012}
+        cds = build_coordinates(gene, transcript)
+        print cds
+        gen_seq = ""
+        orf_seq = ""
+        with open("plusplus.gm", "r") as gm:
+            for line in gm: gen_seq += line.strip()
+        with open("plusplus.orf", "r") as orf:
+            for line in orf: orf_seq += orf.strip()
+        
         self.assert_(True, "true")
     def testPriorityOrder(self):
         pass
