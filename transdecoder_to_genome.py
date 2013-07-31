@@ -15,9 +15,7 @@ Expects the genome gff3 as input, along with the file transcripts file.
 
 import sys 
 import os
-import Bio 
-from Bio import SeqIO
-import unittest
+import traceback
 
 from optparse import OptionParser
 
@@ -40,17 +38,14 @@ def main(argv=None):
     program_longdesc = '''''' # optional - give further explanation about what the program does
     program_license = "Copyright 2013 Donald Danforth Plant Science Center                                           \
                 Licensed under the Apache License 2.0\nhttp://www.apache.org/licenses/LICENSE-2.0"
-    run_tests = False
-    print >> sys.stderr, "THIS IS NOT DONE, NEED TO DO MAKE THE + - LINE UP CORRECTLY"
+
     if argv is None:
         argv = sys.argv[1:]
         # setup option parser
         parser = OptionParser(version=program_version_string, epilog=program_longdesc, description=program_license)
         parser.add_option("-r", "--referencegff", dest="referencegff", help="Reference gff to use <FILE>", metavar="FILE")
         parser.add_option("-b", "--best_cand", dest="bestcandgff", help="Transdecoder best_candidates.eclipsed_orfs_removed.gff3 generated file <FILE>", metavar="FILE")
-        parser.add_option("-f", "--referencefasta", dest="referencefasta", help="Reference fasta file, used for validation during tests. <FILE>")
-        
-        
+    
         # process options
         (opts, args) = parser.parse_args(argv)
         rg,bcg,rf = None,None,None
@@ -65,316 +60,359 @@ def main(argv=None):
             print "Expects three arguments."
             parser.print_help()
             return 2
-            
-        # MAIN BODY #
-        #convert_trans_to_genome(rg, bcg, rf)
-        """ MAKE ALL THIS SHIT UNIT TESTS PLEASE"""
 
-        gene = {'start': 22302, 'stop': 23221, 'name': 'gene1', \
-                'exons': ({'start': 22302, 'stop': 22379}, {'start':22485 , 'stop': 22621}, \
-                          {'start': 23060, 'stop': 23150}, {'start':23195, 'stop': 23221})}
-        transcript = {'name':'gene1', 'start': 1, 'stop': 333}
-        """
-        The following tests show that the sign showed in the gff file are irrelevant, the coordinates
-        remain the same regardless.
-        
-        That is, if a negative sign is shown in the transdecoder.gff3 file, the output coordinates work, and to get the data you must
-        slice the subsquence from exons.fasta, then reverse transcribe it.
-        
-        This will output the sequence in the transdecoder.cds file.
-        """
-        
-        # + - CASE FOR PARTIAL
-        """
-            final[878:1190][::-1].translate(transtab) where final is the exons.fasta for something that was originally +.
-            and the gff3 file said it is negative works correctly. that is, our coordinates provided by the gff3 file are
-            correct for + in org - in the new. This means to get the sequence it needs to be reverse transcribed, but the
-            coordinate themselves are correct.
-        """
-        gene = {'start': 67878, 'stop': 74308, 'name':'plusmin', 
-                'exons': ({ 'start': 67878, 'stop': 68085 } , 
-                          { 'start': 68882, 'stop': 68943 } , 
-                          { 'start': 69034, 'stop': 69141 } ,
-                          { 'start': 69683, 'stop': 69762 } ,
-                          { 'start': 71555, 'stop': 71717 } ,
-                          { 'start': 72187, 'stop': 72261 } ,
-                          { 'start': 72370, 'stop': 72458 } ,
-                          { 'start': 73151, 'stop': 73270 } ,
-                          { 'start': 73918, 'stop': 73962 } ,
-                          { 'start': 74066, 'stop': 74308 } 
-                         )}
-        transcript = {'name':'plusmin', 'start': 879, 'stop': 1190}
-        # - - case
-        """
-            final[1003:1327][::-1].translate(trans) where final is the exons.fasta for somethinga that was originally -.
-            The gff3 file from transdecoder also said -, which means to reverse transcribe the fasta file to get what was
-            in the coding sequence. These are the coordinates found in the gff3, so we know they are correct.
-        """
-        gene = {'start': 5731958, 'stop': 5744344, 'name':'minmin', 
-                'exons': ({ 'start': 5731958, 'stop': 5732148 } , 
-                          { 'start': 5732445, 'stop': 5733573 } , 
-                          { 'start': 5733673, 'stop': 5733929 } ,
-                          { 'start': 5735453, 'stop': 5736066 } ,
-                          { 'start': 5736111, 'stop': 5736553 } ,
-                          { 'start': 5736642, 'stop': 5736953 } ,
-                          { 'start': 5737039, 'stop': 5738345 } ,
-                          { 'start': 5738598, 'stop': 5738961} ,
-                          { 'start': 5739248, 'stop': 5739641 } ,
-                          { 'start': 5739724, 'stop': 5740829 } ,
-                          { 'start': 5741250, 'stop': 5743397 } ,
-                          { 'start': 5743651, 'stop': 5744344 } 
-                         )}
-        transcript = {'name':'minmin', 'start': 1004, 'stop':1327}
-        # - + case
-        """
-            Minus plus immediately finds the ATG at the start of the genome sequence, this is as expected,
-            as the gff3 provided by transdecoder said +, and the genome sequence in exons.fasta and the 
-            transdecoder coding sequence agree.
-            
-            found at final[0:957] (entire string haha)
-        """
-        gene = {'start': 26167, 'stop': 27852, 'name':'minplus', 
-                'exons': ({ 'start': 26167, 'stop': 26599 } , 
-                          { 'start': 26722, 'stop': 26764 } , 
-                          { 'start': 27215, 'stop': 27494 } ,
-                          { 'start': 27650, 'stop': 27852 } 
-                         )}
-         
-        transcript = {'name':'minplus', 'start': 1, 'stop': 957}
-
-        
-        """
-        case that failed during run
-        Broke because start and stop were in the same exon. This caused the range() function to create an empty list.
-        Attempted fix was to call range(start,stop+1), and then in the function check if i == stop-1
-        """
-        gene = {'start': 29055, 'stop': 46004, 'name': 'TCONS_00001427', 'exons': 
-                [{'start': 29055, 'stop': 29635}, 
-                 {'start': 29755, 'stop': 29916}, 
-                 {'start': 30060, 'stop': 30149}, 
-                 {'start': 30763, 'stop': 30924}, 
-                 {'start': 31008, 'stop': 31109}, 
-                 {'start': 31408, 'stop': 31476}, 
-                 {'start': 31563, 'stop': 31698}, 
-                 {'start': 31778, 'stop': 31959},
-                 {'start': 32909, 'stop': 33043}, 
-                 {'start': 33128, 'stop': 33229}, 
-                 {'start': 33331, 'stop': 33444}, 
-                 {'start': 35010, 'stop': 35060}, 
-                 {'start': 35165, 'stop': 35233}, 
-                 {'start': 37301, 'stop': 37378}, 
-                 {'start': 38378, 'stop': 38479}, 
-                 {'start': 39604, 'stop': 39684}, 
-                 {'start': 42031, 'stop': 42132}, 
-                 {'start': 43293, 'stop': 43688}, 
-                 {'start': 45586, 'stop': 46004}]}
-        transcript = {'start': 2, 'stop': 175, 'name': 'TCONS_00001427'}
-        
-        if run_tests:
-            unittest.main()   
-
-        #print build_coordinates(gene, transcript)
-        convert_trans_to_genome(rg, bcg)
+        convert_trans_to_genome_objects(rg, bcg)
     
 """
-    Each CDS will be relative to the transcript coordinates. that is, exon1 + exon2 + exon3 + ... + exonN
-    These exons have their own associated reigon which can be found in the reference gff3 file.
+    Takes the original gff3 and the transdecoder output, best_candidate.orf.gff3. Creates a new gff containing each CDS in genome
+    coordinates instead of local coordinates. If there is more than one Open reading frame for each transcript, it will automatically 
+    choose the best ORF. This function removes the partial tags from each ORF.
+    
+    choose_best tells the system to automatically choose the best transcript for each locus. 
 
-    in our example file, passed.gff3 contains the coordinates of each exon per gene and contains the same ID as in
-    the output .gff3 file. This is the first element on the line in the best_candidates.eclipsed_orfs_removed.gff3
-    file.
-    
-    it is a part of the 8th element in the passed.gff3 file.
-    
-    additionally, if the best_candidates.eclipsed_orfs_removed.gff3 has a line that says its on the (-) strand,
-    check the original file to see what it says, and invert it.
-    
-    Next, we need the original .fasta file so we can check the strandedness of each entry in the gff3 file. This
-    let's us double check what we are doing.
-    
-    Finally, we need to build a new gff3 file that contains the CDS in genome coordinates.
-    
-    We cannot use th BCBio python package because it is not installed on the server, thus we will use our own gff3
-    parser.
-    
-    we're gona pipe output to stdout, optional input for file to write to
-    
-    I dont think we care about original fasta... maybe for robustness??? option?
 """
-
-            #original_fasta = SeqIO.index(original_fasta, "fasta")
-            #print original_fasta
-            #print original_fasta['TCONS_00043934']
-def convert_trans_to_genome(original_gff, best_cands):
+            
+def convert_trans_to_genome_objects(original_gff, best_cands, choose_best = True):
     bc_lookup = {}
     with open(best_cands, "r") as bc:
         for line in bc:
-            if len(line.split())  > 3 and "CDS" in line: #safe number??
-                linearr = line.split()
-                name = linearr[0]
-                try:
-                    bc_lookup[name].append((linearr, line))
-                except KeyError:
-                    bc_lookup[name] = []
-                    bc_lookup[name].append((linearr, line))
-      
-    #print bc_lookup
-    del linearr
-    with open(original_gff, "r") as og:
-        exon_list = []
-        trans_coor = (0,0)
-        last_trans = []
-        for line in og:
-            linearr = line.split()
             try:
-                cur_gene = linearr[8]
+                gene = Transcript(line)
             except:
                 continue
-            if linearr[2] == "exon":
-                exon_list.append((linearr, line))
-            elif "transcript" in linearr[2] or "mRNA" in linearr[2]:
-                #startover
-                partial = False
-                if not partial: #keep partial tag
-                    print line.strip()
-                    pass
-                if len(exon_list) > 0:
+            if gene.getLabel() == "gene":
+                try:
+                    bc_lookup[gene.parent].append(gene)
+                except KeyError:
+                    bc_lookup[gene.parent] = []
+                    bc_lookup[gene.parent].append(gene)
+    with open(original_gff, "r") as og:
+        last_trans = None
+        cur_locus = None
+        for line in og:
+            try:
+                cur_gene = GFFLine(line)
+            except Exception, e:
+                continue
+            if cur_gene.getLabel() == "locus":
+                if cur_locus != None:
+                    if choose_best:
+                        cur_locus.chooseBest()
+                    cur_locus.printLines()
+                cur_locus = Locus(cur_gene.lines[1])
+            if cur_gene.getLabel() == "exon":
+                last_trans.addExon(Exon(cur_gene.lines[1]))                
+            elif "transcript" == cur_gene.getLabel() or "mRNA" == cur_gene.getLabel():
+                #current is a transcript, so process the complete set, which is the previous transcript
+                if last_trans != None and len(last_trans.exons) > 0:
                     try:
-                        # get the name
-                        cur_gene = last_trans[8].split("=")[1].split(";")[0]
-                        print cur_gene
-                        for trans in bc_lookup[cur_gene]:
-                            if trans[0][6] == "-":
-                                swap = True
-                            else:
-                                swap = False
-                            transcript = {'name':cur_gene, 'start': int(trans[0][3]), 'stop': int(trans[0][4])}
-                            genome_exon_list = []
-                            for f in exon_list: 
-                                genome_exon_list.append({'start': int(f[0][3]), 'stop': int(f[0][4])})
-                                #sanity check
-                                if not trans[0][0] in cur_gene:
-                                    raise Exception("Wrong gene." + trans[0][0] + " " + cur_gene)
-                            exons = {'start': trans_coor[0], 'stop': trans_coor[1], 'name': cur_gene, 'exons': genome_exon_list}
-                            try:
-                                #get genome coordinates
-                                cds = build_coordinates(exons, transcript)
-                                if len(cds) == 0:
-                                    raise Exception("CDS empty")
-                                for exon in exon_list:
-                                    if swap:
-                                        if "+" in exon[1]:
-                                            print exon[1].replace("+", "-").strip()
-                                        else:
-                                            print exon[1].replace("-", "+").strip()
-                                    else:
-                                        print exon[1].strip()
-                                    for seq in cds:
-                                        #if it is a part of or equal to this exon write it                                        
-                                        if seq['start'] >= int(exon[0][3]) and seq['stop'] <= int(exon[0][4]):
-                                            #change exon to CDS, put the CDS start at the start position and CDS end at end position.
-                                            fin = exon[1].replace('exon', 'CDS').replace(exon[0][3],str(seq['start'])).replace(exon[0][4],str(seq['stop']))
-                                            if swap:
-                                                if "+" in fin:
-                                                    print fin.replace("+", "-").strip()
-                                                else:
-                                                    print fin.replace("-", "+").strip()
-                                            else:
-                                                print fin.strip()
-                                            break 
-                                
-                            except Exception as e:
-                                print >> sys.stderr, e
-                                print >> sys.stderr, "Error in Gene:"
-                                print >> sys.stderr, "Exons", exons
-                                print >> sys.stderr, "trans", transcript
+                        best = None
+                        for trans in bc_lookup[last_trans.getName()]:
+                            if best == None:
+                                best = trans
+                            if trans > best:
+                                best = trans
+                        if best.strand == "-":
+                            last_trans.switchDirections()
+                        last_trans.setLength(len(best))
+                        last_trans.setPartial(best.partial)
+                        best = Exon(best.lines[1]) #cast it to an exon
+                        transcript = best.getDicFormat(best.parent)
+                        genome_exon_list = last_trans.getExonDicList()
+                        #maybe add another method for this..
+                        exons = {'start': last_trans.start, 'stop': last_trans.stop, 'name': last_trans.getName(), 'exons': genome_exon_list}
+                        try:
+                            #get genome coordinates
+                            cds = build_coordinates(exons, transcript)
+                            if len(cds) == 0:
+                                raise Exception("CDS empty")
+                            for exon in last_trans.exons:
+                                for seq in cds:
+                                    #if it is a part of or equal to this exon write it                                        
+                                    if seq['start'] >= exon.start and seq['stop'] <= exon.stop:
+                                        #change exon to CDS, put the CDS start at the start position and CDS end at end position.
+                                        fin = exon.lines[1].replace('exon', 'CDS').replace(str(exon.start),str(seq['start'])).replace(str(exon.stop),str(seq['stop']))
+                                        last_trans.addCDS(Exon(fin))
+                                        break 
+                        except Exception as e:
+                            #error in the reading, usually means nothing found.
+                            pass
                     except KeyError as e:
-                        print >> sys.stderr, e
-                        continue
-                last_trans = linearr
-                trans_coor = (int(linearr[3]), int(linearr[4]))
-
-                exon_list = []    
-
-                    
-            #modify this if output flag is present
+                        pass #not found in CDS list
+                if last_trans != None:
+                    cur_locus.addTranscript(last_trans)
+                last_trans = Transcript(cur_gene.lines[1])
             else: 
-                print line.strip()
-    
-    
+                #print all other lines?
+                pass#print line.strip()
     
 """
     This function should be responsible for building the genome coordinates and the exon coordinates and performing
     a translation from exon coordinates to genome coordinates.
     
-    gene = {'start': '100', 'stop': '400', 'name': 'gene1', 'exons': ({'start': 100, 'stop': 149}, {'start': 200, 'end': 249}, {'start': 300, 'stop': 400})}    
-    transcript = {genename: (start, stop)}
+    Exceptions will be raised if the names do not match or if one of the transcript coordinates is invalid. The definition
+    of coordinates expected are to start at 1, and to go UNTIL the last number. So a reading frame of length one would have the
+    same start as end.
     
-    returns gene_genome = <cds> ({"start":start, "stop":stop}, {"start":start,"stop":stop}, {"start":start,"stop":stop}... )
+    @param gene = {'start': '100', 'stop': '400', 'name': 'gene1', 'exons': ({'start': 100, 'stop': 149}, {'start': 200, 'end': 249}, {'start': 300, 'stop': 400})}    
+    @param transcript = {genename: (start, stop)}
+    
+    @returns gene_genome = <cds> ({"start":start, "stop":stop}, {"start":start,"stop":stop}, {"start":start,"stop":stop}... )
 """    
 def build_coordinates(gene, transcript):
-    if (gene['name'] != transcript['name']):
-        err = "Gene names do not match." + str(gene['name'])+ " " + str(transcript['name'])
-        raise Exception(err)
-    #to build our list use range and add one to the end because range is exclusive and gff3 is inclusive
-    genome_coords = []
-    gene_list = []
-    for exons in gene['exons']:
-        genome_coords += range(exons['start'], exons['stop'] + 1)
-        gene_list.append(range(exons['start'], exons['stop'] + 1))
-    #finds the start and stop exons, all exons inbetween are also going to be written as CDS
-    start, stop = None, None
-    for genes in gene_list:
-        if genome_coords[transcript['start']-1] in genes:
-            start = gene_list.index(genes)
-            start_idx = genes.index(genome_coords[transcript['start'] -1] )
-        if genome_coords[transcript['stop'] - 1] in genes:
-            stop = gene_list.index(genes)
-            stop_idx = genes.index(genome_coords[transcript['stop'] - 1])
-    cds = []
-    for i in range(start, stop+1):
-        cur_cds = gene['exons'][i]
-        if i == start:
-            cur_cds['start'] = gene_list[start][start_idx]
-        elif i == stop-1:
-            cur_cds['stop'] = gene_list[stop][stop_idx]
-        cds.append(cur_cds)    
-    return cds
+        if transcript['start'] < 1:
+            raise Exception("Transcript Start is less than 1.")
+        if transcript['stop'] < transcript['start']:
+            raise Exception("Transcript Stop is less than start.")
+        if (gene['name'] != transcript['name']):
+            err = "Gene names do not match. " + str(gene['name'])+ " " + str(transcript['name'])
+            raise Exception(err)
+        #to build our list use range and add one to the end because range is exclusive and gff3 is inclusive
+        genome_coords = []
+        gene_list = []
+        for exons in gene['exons']:
+            genome_coords += range(exons['start'], exons['stop'] + 1)
+            gene_list.append(range(exons['start'], exons['stop'] + 1))
+        start, stop = None, None
+        try:
+            for genes in gene_list:
+                try:
+                    end = genome_coords[transcript['stop'] - 1]
+                except IndexError:                    
+                    end = genome_coords[-1]
+                if genome_coords[transcript['start']-1] in genes:
+                    start = gene_list.index(genes)
+                    start_idx = genes.index(genome_coords[transcript['start'] - 1] )
+                if end in genes:
+                    stop = gene_list.index(genes)
+                    stop_idx = genes.index(end)
+        except IndexError:
+            tb = traceback.format_exc()
+            print >> sys.stderr, tb
+            print >> sys.stderr, transcript['stop'] - 1, len(genome_coords)- 1, transcript['stop'] - len(genome_coords) , (transcript['stop'] - 1) % 3, transcript['name']
+        cds = []
 
+        for i in range(start, stop+1):
+            cur_cds = gene['exons'][i]
+            if i == start:
+                cur_cds['start'] = gene_list[start][start_idx]
+            elif i == stop:
+                cur_cds['stop'] = gene_list[stop][stop_idx]
+            if start == stop: #case where they are the same
+                cur_cds['stop'] = gene_list[stop][stop_idx]
+            cds.append(cur_cds) 
+        return cds  
+"""
+    Base class for a line in a gff3 file. Responsible for parsing the lines, building dictionary format, handling strandedness.
+    Before we know what something is it will be instantiated as a GFFLine. Also contains the original line and a parsed version of
+    that line.
+"""
 
-
-class BuildCoordinatesTest(unittest.TestCase):
-
-    def testCorrectPlusPlus(self):
-        """
-            Plus Plus works exactly as expected. No reverse transcription required. ATG appears immediately
-            at final[522:3012], and the sequence in the transdecoder.cds match the subsequence.
-        """
-        gene = {'start': 74641, 'stop': 78761, 'name':'plusplus', 
-                'exons': ({ 'start': 74641, 'stop': 76014 } , 
-                          { 'start': 76111, 'stop': 76277 } , 
-                          { 'start': 76368, 'stop': 76465 } ,
-                          { 'start': 76558, 'stop': 76914 } ,
-                          { 'start': 77029, 'stop': 77445 } ,
-                          { 'start': 77628, 'stop': 78761 }
-                         )}
-        transcript = {'name':'plusplus', 'start': 523, 'stop':3012}
-        cds = build_coordinates(gene, transcript)
-        print cds
-        gen_seq = ""
-        orf_seq = ""
-        with open("plusplus.gm", "r") as gm:
-            for line in gm: gen_seq += line.strip()
-        with open("plusplus.orf", "r") as orf:
-            for line in orf: orf_seq += orf.strip()
+class GFFLine():
+    start = ""
+    stop = ""
+    lines = None
+    strand = None
+    parent = None
+    def __init__(self, line):
+        self.ParseHeader(line)
         
-        self.assert_(True, "true")
-    def testPriorityOrder(self):
-        pass
-    def testDirectoryRun(self):
-        pass
-    def testProcessAdd(self):
-        pass
+    def __len__(self):
+        if self.stop == None or self.start == None or self.stop - self.start < 1:
+            raise Exception("Improperly initialized. Invalid start and end")
+        return self.stop - self.start
+    
+    def __str__(self):
+        return self.lines[1]
+    
+    def __contains__(self, key):
+        if key in self.lines[1]:
+            return True
+        else: 
+            return False     
+    def getLabel(self):
+        return self.lines[0][2]
+    
+    def ParseHeader(self, line):
+        linearr = line.split()
+        if len(linearr) < 8:
+            raise Exception("Line does not contain valid format.\n" + line)
+        self.lines = [linearr, line]
+        self.start = int(linearr[3])
+        self.stop = int(linearr[4])
+        self.parent = linearr[0]
+        if self.start >= self.stop:
+            raise Exception("Error in input, start must be less than stop: "+ " ".join(linearr[3:5]))
+        if "+" in line: self.strand = "+"
+        else: self.strand = "-"
+    
+    def getDicFormat(self):
+        raise Exception("GFFLine should never call getDicFormat. Check your typing.")
+        return {'name': self.getLabel(), 'start': self.start, 'stop': self.stop}
+    """
+    Returns self for convenience.
+    Switched from + to - and - to +. Also updates the lines.
+    """
+    def switchStrand(self):
+        if self.strand == "+":
+            self.strand = "-"
+            self.lines[0][6] = self.strand
+            self.lines[1] = self.lines[1].replace("+", self.strand)
+            return self
+        if self.strand == "-":
+            self.strand = "+"
+            self.lines[0][6] = self.strand
+            self.lines[1] = self.lines[1].replace("-", self.strand)
+            return self
+"""
+    Child class of GFFLine that is for locus. Locus are special because they are the top of the heirarchy and may contain transcripts.
+    This class is also responsible for printing all of the child transcripts and their associated exons/CDS
+"""
+class Locus(GFFLine):
+    transcripts = None
+    transcript_lines = None
+    name = ""
+    def __init__(self,line):
+        GFFLine.__init__(self, line)
+        self.transcript_lines = []
+        self.transcripts = []
+        self.name = self.lines[0][8].split("=")[1].split(";")[0]
+
+    def addTranscriptLine(self, line):
+        self.transcript_lines.append(line)
+        
+    def addTranscript(self, trans):
+        self.transcripts.append(trans)
+    
+    def getName(self):
+        return self.name
+    
+    def printLines(self):
+        print self.lines[1],
+        for trans in self.transcripts:
+            if len(trans.CDS) != 0:
+                print trans,
+                for exon in trans.exons:
+                    print exon,
+                    for cds in trans.CDS:
+                        if cds.start >= exon.start and cds.stop <= exon.stop:
+                            print cds,
+                            break
+    def chooseBest(self):
+        best = None
+        for trans in self.transcripts:
+            if trans > best:
+                best = trans
+        self.transcripts = [best]
+
+"""
+Contains a list of exons, and overridden operators for Greater Than, Less Than, Equals.
+Contains various function on the set of exons in this transcript. Also includes a name function
+"""
+class Transcript(GFFLine): 
+    exons = None
+    partial = None
+    name = None
+    CDS = None
+    def __init__(self, line):
+        GFFLine.__init__(self, line)
+        self.exons = []
+        self.CDS = []
+        self.length = None
+        if "partial" in self:  self.partial = "partial"
+        elif "internal" in self: self.partial = "internal"
+        else: self.partial = "complete"
+        self.name = self.lines[0][8].split("=")[1].split(";")[0]
+        
+    def setPartial(self, partial):
+        self.partial = partial
+    
+    def __len__(self):
+        if self.length != None:
+            return self.length
+        else:
+            return GFFLine.__len__(self)
+    def getName(self):
+        return self.name
+    
+    def setLength(self, length):
+        self.length = length
+        
+    def addExon(self, exon):
+        if not isinstance(exon, Exon):
+            raise Exception("Passed is not of type exon. Type Exon expected.")
+        self.exons.append(exon)
+        
+    def addCDS(self, CDS):
+        if not isinstance(CDS, Exon):
+            raise Exception("Passed is not of type exon. Type Exon expected.")
+        self.CDS.append(CDS)
+    def getExonDicList(self):
+        lst = []
+        for exon in self.exons:
+            lst.append( exon.getDicFormat() )
+        return lst
+    def getDicFormat(self):
+        return {'name': self.name, 'start': self.start, 'stop': self.stop}
+    
+    def switchDirections(self):
+        self.switchStrand()
+        new_exons = []
+        for exon in self.exons:
+            new_exons.append(exon.switchStrand())
+        self.exons = new_exons
+        return True
+    
+    def __gt__(self, b):
+        if b == None:
+            return True
+        if self.isComplete() and not b.isComplete():
+            return True
+        if b.isComplete() and not self.isComplete():
+            return False
+        if len(self) > len(b):
+            return True
+        if len(b) > len(self):
+            return False
+        return False
+    def __lt__(self, b):
+        if b == None:
+            return False
+        if self.isComplete() and not b.isComplete():
+            return False
+        if b.isComplete() and not self.isComplete():
+            return True
+        if len(self) > len(b):
+            return False
+        if len(b) > len(self):
+            return True
+        return False
+    def __eq__(self, b):
+        #so brave
+        if not self > b and not self < b:
+            return True
+    def isComplete(self):
+        if "complete" in self.partial:
+            return True
+        else: 
+            return False
+        
+"""
+Overrides getDicFormat to use the parent as the name
+"""
+class Exon(GFFLine):
+    def __init__(self, line):
+        GFFLine.__init__(self, line)
+    def parseName(self):
+        self.name = self.lines[0][8].split("=")[1].split(";")[0]
+
+    def getDicFormat(self, name=None):
+        if name == None:
+            self.parseName()
+        else:
+            self.name = name
+        return {'name': self.name, 'start': self.start, 'stop': self.stop}
+
 
 if __name__ == "__main__":
     if PROFILE:
