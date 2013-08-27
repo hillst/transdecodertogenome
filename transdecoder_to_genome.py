@@ -45,7 +45,8 @@ def main(argv=None):
         parser = OptionParser(version=program_version_string, epilog=program_longdesc, description=program_license)
         parser.add_option("-r", "--referencegff", dest="referencegff", help="Reference gff to use <FILE>", metavar="FILE")
         parser.add_option("-b", "--best_cand", dest="bestcandgff", help="Transdecoder best_candidates.eclipsed_orfs_removed.gff3 generated file <FILE>", metavar="FILE")
-    
+        parser.add_option("-o", "--output", dest="output", help="File name to write to. All output is in gff3 format.")
+
         # process options
         (opts, args) = parser.parse_args(argv)
         rg,bcg,rf = None,None,None
@@ -53,9 +54,8 @@ def main(argv=None):
             rg = opts.referencegff
         if opts.bestcandgff:
             bcg = opts.bestcandgff
-        if opts.referencefasta:
-            rf = opts.referencefasta
-            print rf
+        if opts.output:
+            output = opts.output
         if rg == None or bcg == None:
             print "Expects three arguments."
             parser.print_help()
